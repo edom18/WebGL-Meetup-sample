@@ -2,11 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<title>WebGL - Meetup</title>
-<link rel="stylesheet" type="text/css" media="screen,print" href="style.css" />
+<title>WebGL - Meetup sample</title>
+<link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
+    <!-- 頂点シェーダソース -->
     <script id="vs" type="x-shader/x-vertex">
         attribute vec3 position;
         attribute vec4 color;
@@ -21,6 +22,7 @@
         }
     </script>
 
+    <!-- フラグメントシェーダソース -->
     <script id="fs" type="x-shader/x-fragment">
         precision mediump float;
 
@@ -33,8 +35,8 @@
 
     <canvas id="canvas"></canvas>
 
-    <script src="minMatrix.js"></script>
-    <script src="index.js"></script>
+    <script src="js/lib/minMatrix.js"></script>
+    <script src="js/main.js"></script>
 
 </body>
 </html>
