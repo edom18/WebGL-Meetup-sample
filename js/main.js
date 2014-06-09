@@ -22,7 +22,7 @@
      */
     function create_shader(id) {
 
-        var typeMap = {
+        var type_map = {
             'x-shader/x-vertex'  : gl.VERTEX_SHADER,
             'x-shader/x-fragment': gl.FRAGMENT_SHADER
         };
@@ -30,7 +30,7 @@
         var ele = document.getElementById(id);
 
         // DOMのtype属性から生成するシェーダの種類を決める
-        var shader = gl.createShader(typeMap[ele.type]);
+        var shader = gl.createShader(type_map[ele.type]);
 
         // 生成したシェーダに、DOM内のテキストをソースとして設定する
         gl.shaderSource(shader, ele.innerHTML);
@@ -58,22 +58,22 @@
     function create_program(vs, fs) {
         
         // WebGLProgramオブジェクトを生成
-        var prg = gl.createProgram();
+        var program = gl.createProgram();
 
         // 引数で渡されたシェーダをアタッチ（頂点シェーダ→フラグメントシェーダの順）
-        gl.attachShader(prg, vs);
-        gl.attachShader(prg, fs);
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
 
         // ふたつのシェーダをリンクする
-        gl.linkProgram(prg);
+        gl.linkProgram(program);
 
         // もしリンクエラーがあった場合はそれを表示
-        if (gl.getProgramParameter(prg, gl.LINK_STATUS)) {
-            gl.useProgram(prg);
-            return prg;
+        if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            gl.useProgram(program);
+            return program;
         }
         else {
-            alert(gl.getProgramInfoLog(prg));
+            alert(gl.getProgramInfoLog(program));
         }
     }
 
@@ -171,13 +171,13 @@
     var fs = create_shader('fs');
 
     // 生成したシェーダからWebGLProgramオブジェクトを生成
-    var prg = create_program(vs, fs);
+    var program = create_program(vs, fs);
 
     // 頂点位置のVBOを生成
-    var vPosition = create_vbo(position);
+    var vertex_position = create_vbo(position);
 
     // 頂点色のVBOを生成
-    var vColor = create_vbo(color);
+    var vertex_color = create_vbo(color);
 
     // IBOを生成
     var ibo = create_ibo(index);
@@ -190,60 +190,57 @@
     var m = new matIV();
 
     // モデル行列用変数
-    var mMatrix   = m.identity(m.create());
+    var model_matrix   = m.identity(m.create());
 
     // ビュー行列用変数
-    var vMatrix   = m.identity(m.create());
+    var view_matrix   = m.identity(m.create());
 
     // プロジェクション行列用変数
-    var pMatrix   = m.identity(m.create());
+    var projection_matrix   = m.identity(m.create());
 
-    // 一時行列用変数
-    var tmpMatrix = m.identity(m.create());
-
-    // MVP行列用変数
-    var mvpMatrix = m.identity(m.create());
+    // MVP(Model View Projection)行列用変数
+    var mvp_matrix = m.identity(m.create());
 
     // カメラの位置と注視点を設定
-    m.lookAt([0.0, 0.0, 20.0], [0, 0, 0], [0, 1, 0], vMatrix);
+    m.lookAt([0.0, 0.0, 20.0], [0, 0, 0], [0, 1, 0], view_matrix);
 
     // パースペクティブを設定
-    m.perspective(45, cv.width / cv.height, 0.1, 100, pMatrix);
+    m.perspective(45, cv.width / cv.height, 0.1, 100, projection_matrix);
 
     // MVP行列を完成させる
-    m.multiply(pMatrix, vMatrix, mvpMatrix);
-    m.multiply(mvpMatrix, mMatrix, mvpMatrix);
+    m.multiply(projection_matrix, view_matrix, mvp_matrix);
+    m.multiply(mvp_matrix, model_matrix, mvp_matrix);
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    // シェーダへデータアップロード
+    // シェーダの準備とデータのアップロード
 
     // 生成したプログラム（WebGLProgramオブジェクト）から、
     // 各種attribute変数のインデックス番号を取得
-    var attLocation = [];
-    attLocation[0] = gl.getAttribLocation(prg, 'position');
-    attLocation[1] = gl.getAttribLocation(prg, 'color');
+    var index_of_position = gl.getAttribLocation(program, 'position');
+    var index_of_color    = gl.getAttribLocation(program, 'color');
 
-    var attDiv = [3, 4];
+    // 頂点位置をWebGLに通知
+    var element_number_position = 3;
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_position);
+    gl.enableVertexAttribArray(index_of_position);
+    gl.vertexAttribPointer(index_of_position, element_number_position, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, vPosition);
-    gl.enableVertexAttribArray(attLocation[0]);
+    // 頂点色をWebGLに通知
+    var element_number_color = 4;
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_color);
+    gl.enableVertexAttribArray(index_of_color);
+    gl.vertexAttribPointer(index_of_color, element_number_color, gl.FLOAT, false, 0, 0);
 
-    // 第一引数は頂点属性の番号（index）、第二引数はひとつの頂点の要素数、第三引数は要素のデータ型
-    gl.vertexAttribPointer(attLocation[0], attDiv[0], gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, vColor);
-    gl.enableVertexAttribArray(attLocation[1]);
-    gl.vertexAttribPointer(attLocation[1], attDiv[1], gl.FLOAT, false, 0, 0);
-
+    // 頂点インデックスをWebGLに通知
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
 
     // 生成したプログラム（WebGLProgramオブジェクト）から、
     // 各種uniform変数のインデックス番号を取得
-    var uniLocation = gl.getUniformLocation(prg, 'mvpMatrix');
+    var index_of_mvpMatrix = gl.getUniformLocation(program, 'mvpMatrix');
 
     // 取得したUniform変数へ、生成したMVP行列をアップロード
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+    gl.uniformMatrix4fv(index_of_mvpMatrix, false, mvp_matrix);
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
