@@ -125,7 +125,7 @@
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    // ここからメイン処理
+    // WebGLのセットアップ
 
     var cv    = document.getElementById('canvas');
     cv.width  = window.innerWidth;
@@ -143,12 +143,9 @@
     // カラーと深度ふたつの情報をクリア
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // 頂点シェーダ、フラグメントシェーダを生成
-    var vs = create_shader('vs');
-    var fs = create_shader('fs');
 
-    // 生成したシェーダからWebGLProgramオブジェクトを生成
-    var prg = create_program(vs, fs);
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // データの準備
 
     // 頂点の位置情報
     var position = [
@@ -169,6 +166,13 @@
         0, 1, 2
     ];
 
+    // 頂点シェーダ、フラグメントシェーダを生成
+    var vs = create_shader('vs');
+    var fs = create_shader('fs');
+
+    // 生成したシェーダからWebGLProgramオブジェクトを生成
+    var prg = create_program(vs, fs);
+
     // 頂点位置のVBOを生成
     var vPosition = create_vbo(position);
 
@@ -178,29 +182,9 @@
     // IBOを生成
     var ibo = create_ibo(index);
 
-    // 生成したプログラム（WebGLProgramオブジェクト）から、
-    // 各種attribute変数のインデックス番号を取得
-    var attLocation = [];
-    attLocation[0] = gl.getAttribLocation(prg, 'position');
-    attLocation[1] = gl.getAttribLocation(prg, 'color');
 
-    var attDiv = [3, 4];
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, vPosition);
-    gl.enableVertexAttribArray(attLocation[0]);
-
-    // 第一引数は頂点属性の番号（index）、第二引数はひとつの頂点の要素数、第三引数は要素のデータ型
-    gl.vertexAttribPointer(attLocation[0], attDiv[0], gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, vColor);
-    gl.enableVertexAttribArray(attLocation[1]);
-    gl.vertexAttribPointer(attLocation[1], attDiv[1], gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
-
-    // 生成したプログラム（WebGLProgramオブジェクト）から、
-    // 各種uniform変数のインデックス番号を取得
-    var uniLocation = gl.getUniformLocation(prg, 'mvpMatrix');
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // 座標変換パイプライン
 
     // マトリクス（行列）オブジェクトを生成
     var m = new matIV();
@@ -230,8 +214,40 @@
     m.multiply(pMatrix, vMatrix, mvpMatrix);
     m.multiply(mvpMatrix, mMatrix, mvpMatrix);
 
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // シェーダへデータアップロード
+
+    // 生成したプログラム（WebGLProgramオブジェクト）から、
+    // 各種attribute変数のインデックス番号を取得
+    var attLocation = [];
+    attLocation[0] = gl.getAttribLocation(prg, 'position');
+    attLocation[1] = gl.getAttribLocation(prg, 'color');
+
+    var attDiv = [3, 4];
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vPosition);
+    gl.enableVertexAttribArray(attLocation[0]);
+
+    // 第一引数は頂点属性の番号（index）、第二引数はひとつの頂点の要素数、第三引数は要素のデータ型
+    gl.vertexAttribPointer(attLocation[0], attDiv[0], gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vColor);
+    gl.enableVertexAttribArray(attLocation[1]);
+    gl.vertexAttribPointer(attLocation[1], attDiv[1], gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+
+    // 生成したプログラム（WebGLProgramオブジェクト）から、
+    // 各種uniform変数のインデックス番号を取得
+    var uniLocation = gl.getUniformLocation(prg, 'mvpMatrix');
+
     // 取得したUniform変数へ、生成したMVP行列をアップロード
     gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // レンダリング
 
     // 設定された情報を元にレンダリングを行う
     gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
